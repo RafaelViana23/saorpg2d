@@ -728,7 +728,9 @@ function App() {
     [storageReady, setStorageReady] = useState(false),
     [saveState, setSaveState] = useState("Carregando..."),
     [user, setUser] = useState(null),
-    [authReady, setAuthReady] = useState(false);
+    [authReady, setAuthReady] = useState(false),
+    [projectCloudReady, setProjectCloudReady] = useState(false),
+    [projectCloudState, setProjectCloudState] = useState("Save local");
   const map = project.maps[project.current],
     currentFloor =
       project.floors?.find((floor) => floor.id === project.currentFloor) ||
@@ -807,6 +809,67 @@ function App() {
       cancelled = true;
     };
   }, [project, storageReady]);
+  useEffect(() => {
+    if (!storageReady || !authReady) return undefined;
+    if (!supabase || !user) {
+      setProjectCloudReady(false);
+      setProjectCloudState("Salvo neste dispositivo");
+      return undefined;
+    }
+    let cancelled = false;
+    setProjectCloudReady(false);
+    setProjectCloudState("Carregando projeto da nuvem...");
+    supabase
+      .from("editor_projects")
+      .select("data")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(async ({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setProjectCloudState("Nuvem indisponível · cópia local ativa");
+          return;
+        }
+        if (data?.data?.maps && data.data.assets && data.data.folders) {
+          setProject(upgradeProject(clone(data.data)));
+          setStatus("Projeto restaurado da nuvem");
+        } else {
+          const { error: uploadError } = await supabase
+            .from("editor_projects")
+            .upsert({
+              user_id: user.id,
+              data: project,
+              updated_at: new Date().toISOString(),
+            });
+          if (uploadError) {
+            setProjectCloudState("Nuvem indisponível · cópia local ativa");
+            return;
+          }
+        }
+        if (!cancelled) {
+          setProjectCloudReady(true);
+          setProjectCloudState("Projeto sincronizado");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, storageReady, user?.id]);
+  useEffect(() => {
+    if (!supabase || !user || !projectCloudReady) return undefined;
+    setProjectCloudState("Sincronizando projeto...");
+    const timeout = window.setTimeout(async () => {
+      const { error } = await supabase.from("editor_projects").upsert({
+        user_id: user.id,
+        data: project,
+        updated_at: new Date().toISOString(),
+      });
+      setProjectCloudState(
+        error ? "Nuvem indisponível · cópia local ativa" : "Projeto sincronizado",
+      );
+    }, 1800);
+    return () => window.clearTimeout(timeout);
+  }, [project, projectCloudReady, user?.id]);
   const commit = useCallback((fn) => {
     setProject((old) => {
       history.current.push(clone(old));
@@ -2100,7 +2163,9 @@ function App() {
           <span className="version">AINCRAD STUDIO · v0.9</span>
         </div>
         <div className="header-actions">
-          <span className="autosave-status">{saveState}</span>
+          <span className="autosave-status">
+            {user ? projectCloudState : saveState}
+          </span>
           <AuthControl user={user} ready={authReady} />
           <button className="launch-game" onClick={launchFullScreenGame}>
             <Play size={15} /> Jogar

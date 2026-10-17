@@ -710,11 +710,29 @@ function LoginScreen() {
 
 function AuthControl({ user }) {
   if (!user) return null;
+  const initial = (user.email?.[0] || "U").toUpperCase();
   return (
-    <div className="auth-account">
-      <span title={user.email}>{user.email}</span>
-      <button onClick={() => supabase?.auth.signOut()}>Sair</button>
-    </div>
+    <details className="profile-menu">
+      <summary className="profile-avatar" title="Abrir perfil">
+        {initial}
+      </summary>
+      <div className="profile-popover">
+        <div className="profile-heading">
+          <span className="profile-avatar large">{initial}</span>
+          <div>
+            <strong>Perfil</strong>
+            <small>Administrador do projeto</small>
+          </div>
+        </div>
+        <div className="profile-email">
+          <small>E-mail</small>
+          <span>{user.email}</span>
+        </div>
+        <button className="profile-logout" onClick={() => supabase?.auth.signOut()}>
+          Sair da conta
+        </button>
+      </div>
+    </details>
   );
 }
 
@@ -2207,7 +2225,6 @@ function App() {
           <span className="autosave-status">
             {user ? projectCloudState : saveState}
           </span>
-          <AuthControl user={user} />
           <button className="launch-game" onClick={launchFullScreenGame}>
             <Play size={15} /> Jogar
           </button>
@@ -2224,6 +2241,7 @@ function App() {
           <button onClick={saveProjectNow}>
             <Save size={15} /> Salvar agora
           </button>
+          <AuthControl user={user} />
           <button onClick={exportProject}>
             <Download size={15} /> Exportar
           </button>

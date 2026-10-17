@@ -1,4 +1,6 @@
 import React, {
+  lazy,
+  Suspense,
   useState,
   useRef,
   useEffect,
@@ -53,16 +55,17 @@ import {
   TILE,
 } from "./engine";
 import "./style.css";
-import Gameplay from "./Gameplay";
-import Controller from "./Controller";
 import { randomId } from "./id";
 import { supabase } from "./lib/supabase";
+import { validateImportedProject } from "./project-validation";
 import {
   captureProjectContent,
   restoreProjectContent,
 } from "./project-migrations";
 const clone = (x) => structuredClone(x),
   uid = randomId;
+const Gameplay = lazy(() => import("./Gameplay"));
+const Controller = lazy(() => import("./Controller"));
 const DB_NAME = "pixel-forge-autosave",
   STORE_NAME = "projects",
   SAVE_KEY = "current";
@@ -1839,8 +1842,7 @@ function App() {
     if (!f) return;
     try {
       const data = JSON.parse(await f.text());
-      if (!data.maps || !data.assets || !data.folders)
-        throw Error("Arquivo incompatível");
+      validateImportedProject(data);
       setProject(upgradeProject(data));
       history.current = [];
       future.current = [];
@@ -3487,5 +3489,7 @@ function App() {
   );
 }
 createRoot(document.getElementById("root")).render(
-  location.pathname.replace(/\/$/, "") === "/controller" ? <Controller /> : <App />,
+  <Suspense fallback={<div className="loading-project">Carregando Pixel Forge...</div>}>
+    {location.pathname.replace(/\/$/, "") === "/controller" ? <Controller /> : <App />}
+  </Suspense>,
 );

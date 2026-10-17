@@ -41,6 +41,7 @@ import { isInDirectionalRange } from "./gameplay/hitboxes";
 import { drawAttackVfx } from "./gameplay/vfx";
 import QRCode from "qrcode";
 import { randomId } from "./id";
+import { supabase } from "./lib/supabase";
 import {
   CHARACTER_PROFILES,
   friendshipLabel,
@@ -270,7 +271,7 @@ function SaoHpGauge({ value, max, compact = false }) {
   );
 }
 
-export default function Gameplay({ project, setProject, onExit }) {
+export default function Gameplay({ project, setProject, onExit, user }) {
   const [hero, setHero] = useState(() => readSave(project));
   const [gameMapId, setGameMapId] = useState(() => readSave(project).mapId);
   const [enemies, setEnemies] = useState(() =>
@@ -330,6 +331,8 @@ export default function Gameplay({ project, setProject, onExit }) {
   const [controllerOpen, setControllerOpen] = useState(false);
   const [controllerConnected, setControllerConnected] = useState(false);
   const [controllerQr, setControllerQr] = useState("");
+  const [cloudState, setCloudState] = useState(user ? "Conectando..." : "Salvo neste dispositivo");
+  const [cloudReady, setCloudReady] = useState(!user);
   const controllerToken = useRef(null);
   if (!controllerToken.current) {
     controllerToken.current = localStorage.getItem(CONTROLLER_TOKEN_KEY) || randomId();
@@ -535,6 +538,90 @@ export default function Gameplay({ project, setProject, onExit }) {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [gameMapId]);
+  useEffect(() => {
+    if (!supabase || !user) {
+      setCloudState("Salvo neste dispositivo");
+      setCloudReady(true);
+      return undefined;
+    }
+    let cancelled = false;
+    setCloudReady(false);
+    setCloudState("Carregando save da nuvem...");
+    supabase
+      .from("game_saves")
+      .select("data")
+      .eq("user_id", user.id)
+      .eq("slot", "main")
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setCloudState("Nuvem indisponível · save local ativo");
+          setCloudReady(true);
+          return;
+        }
+        if (data?.data) {
+          localStorage.setItem(SAVE_KEY, JSON.stringify(data.data));
+          const restored = readSave(project);
+          setHero(restored);
+          setGameMapId(restored.mapId);
+          setEnemies(
+            Object.fromEntries(
+              Object.entries(project.maps).map(([mapId, target]) => [
+                mapId,
+                target.objects
+                  .filter(
+                    (object) =>
+                      object.enemy && !restored.defeated.includes(object.uid),
+                  )
+                  .map((object) => ({
+                    ...object,
+                    hp: object.enemy.hp,
+                    maxHp: object.enemy.hp,
+                    anchorX: object.x,
+                    anchorY: object.y,
+                    lastAttack: 0,
+                    wanderX: 0,
+                    wanderY: 0,
+                    nextWander: 0,
+                  })),
+              ]),
+            ),
+          );
+          setNotice("Progresso restaurado da nuvem");
+        }
+        setCloudState("Sincronizado com a nuvem");
+        setCloudReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [project, user?.id]);
+  useEffect(() => {
+    const data = {
+      ...hero,
+      mapId: gameMapId,
+      saveVersion: GAMEPLAY_SAVE_VERSION,
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    if (!supabase || !user || !cloudReady) return undefined;
+    setCloudState("Sincronizando...");
+    const timeout = window.setTimeout(async () => {
+      const { error } = await supabase.from("game_saves").upsert(
+        {
+          user_id: user.id,
+          slot: "main",
+          data,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,slot" },
+      );
+      setCloudState(
+        error ? "Nuvem indisponível · save local ativo" : "Sincronizado com a nuvem",
+      );
+    }, 1500);
+    return () => window.clearTimeout(timeout);
+  }, [cloudReady, gameMapId, hero, user?.id]);
   useEffect(() => {
     const regionTone = { village: 262, fields: 330, forest: 196, ruins: 146 };
     sound(regionTone[gameMapId] || 220, 0.35, "sine");
@@ -1745,8 +1832,15 @@ export default function Gameplay({ project, setProject, onExit }) {
     terrainBlocked,
   ]);
 
-  const resetProgress = () => {
+  const resetProgress = async () => {
+    if (!confirm("Reiniciar todo o progresso deste personagem?")) return;
     localStorage.removeItem(SAVE_KEY);
+    if (supabase && user)
+      await supabase
+        .from("game_saves")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("slot", "main");
     const fresh = { ...DEFAULT_HERO, quest: { ...DEFAULT_HERO.quest } };
     setHero(fresh);
     setGameMapId("village");
@@ -2359,7 +2453,7 @@ export default function Gameplay({ project, setProject, onExit }) {
         )}
       </main>
       <footer className="game-footer">
-        <span>Progresso salvo automaticamente neste dispositivo</span>
+        <span>{cloudState}</span>
         <button onClick={resetProgress}>Reiniciar progresso</button>
       </footer>
     </div>

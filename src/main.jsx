@@ -56,6 +56,7 @@ import "./style.css";
 import Gameplay from "./Gameplay";
 import Controller from "./Controller";
 import { randomId } from "./id";
+import { supabase } from "./lib/supabase";
 const clone = (x) => structuredClone(x),
   uid = randomId;
 const DB_NAME = "pixel-forge-autosave",
@@ -647,6 +648,57 @@ function AnimationPreview({ draft, assetById }) {
     </div>
   );
 }
+function AuthControl({ user, ready }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const sendMagicLink = async (event) => {
+    event.preventDefault();
+    if (!supabase || !email.trim()) return;
+    setSending(true);
+    setMessage("");
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: location.origin },
+    });
+    setMessage(error ? error.message : "Link enviado. Confira seu e-mail.");
+    setSending(false);
+  };
+
+  if (!ready) return <span className="auth-status">Conta...</span>;
+  if (user)
+    return (
+      <div className="auth-account">
+        <span title={user.email}>{user.email}</span>
+        <button onClick={() => supabase?.auth.signOut()}>Sair</button>
+      </div>
+    );
+  return (
+    <div className="auth-login">
+      <button onClick={() => setOpen((value) => !value)}>Entrar</button>
+      {open && (
+        <form className="auth-popover" onSubmit={sendMagicLink}>
+          <strong>Salvar na nuvem</strong>
+          <small>Receba um link de acesso, sem senha.</small>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="seu@email.com"
+            required
+          />
+          <button className="primary" disabled={sending}>
+            {sending ? "Enviando..." : "Enviar link"}
+          </button>
+          {message && <small className="auth-message">{message}</small>}
+        </form>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [project, setProject] = useState(() => upgradeProject(initialProject())),
     [mode, setMode] = useState("editor"),
@@ -674,7 +726,9 @@ function App() {
     [status, setStatus] = useState("Pronto"),
     [floorExpanded, setFloorExpanded] = useState(true),
     [storageReady, setStorageReady] = useState(false),
-    [saveState, setSaveState] = useState("Carregando...");
+    [saveState, setSaveState] = useState("Carregando..."),
+    [user, setUser] = useState(null),
+    [authReady, setAuthReady] = useState(false);
   const map = project.maps[project.current],
     currentFloor =
       project.floors?.find((floor) => floor.id === project.currentFloor) ||
@@ -702,6 +756,21 @@ function App() {
     clipboard = useRef(null),
     pasteTargetRange = useRef(false),
     images = useRef({});
+  useEffect(() => {
+    if (!supabase) {
+      setAuthReady(true);
+      return undefined;
+    }
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user || null);
+      setAuthReady(true);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      setAuthReady(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
   useEffect(() => {
     let cancelled = false;
     loadSavedProject()
@@ -2019,6 +2088,7 @@ function App() {
         project={project}
         setProject={setProject}
         onExit={exitFullScreenGame}
+        user={user}
       />
     );
   return (
@@ -2031,6 +2101,7 @@ function App() {
         </div>
         <div className="header-actions">
           <span className="autosave-status">{saveState}</span>
+          <AuthControl user={user} ready={authReady} />
           <button className="launch-game" onClick={launchFullScreenGame}>
             <Play size={15} /> Jogar
           </button>

@@ -358,14 +358,14 @@ select:focus-visible {
 .library-content {
   width: min(1240px, calc(100% - 40px));
   margin: 0 auto;
-  padding: 64px 0 90px;
+  padding: 28px 0 70px;
 }
 .library-title {
   display: flex;
-  align-items: end;
+  align-items: start;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 34px;
+  margin-bottom: 24px;
 }
 .library-title small { color: #7195a8; font-size: 9px; font-weight: 800; letter-spacing: .24em; }
 .library-title h1 { margin: 7px 0 4px; font-size: clamp(28px, 4vw, 44px); font-weight: 650; }
@@ -438,6 +438,20 @@ select:focus-visible {
   white-space: nowrap;
 }
 .project-info > small { color: #687783; font-size: 9px; }
+.project-status {
+  display: block;
+  width: max-content;
+  margin-top: 11px;
+  padding: 5px 24px 5px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.project-status.status-draft { color: #c8cbd0; border-color: #555b62; background: #30343a; }
+.project-status.status-development { color: #79e2a2; border-color: #277748; background: #123a25; }
+.project-status.status-ready { color: #88c9ef; border-color: #27678d; background: #123147; }
 .project-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
 .project-actions button {
   display: flex;

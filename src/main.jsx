@@ -769,7 +769,13 @@ function ProjectThumbnail({ data }) {
   return <canvas className="project-thumbnail" ref={preview} />;
 }
 
-function ProjectLibrary({ user, projects, loading, onNew, onOpen, onPlay }) {
+const PROJECT_STATUS = {
+  draft: "Rascunho",
+  development: "Em desenvolvimento",
+  ready: "Pronto",
+};
+
+function ProjectLibrary({ user, projects, loading, onNew, onOpen, onPlay, onStatusChange }) {
   return (
     <div className="library-screen">
       <header className="library-header">
@@ -804,11 +810,21 @@ function ProjectLibrary({ user, projects, loading, onNew, onOpen, onPlay }) {
                 <div className="project-info">
                   <h2>{item.name}</h2>
                   <small>
-                    Atualizado {new Intl.DateTimeFormat("pt-BR", {
+                    Última atualização: {new Intl.DateTimeFormat("pt-BR", {
                       dateStyle: "short",
                       timeStyle: "short",
                     }).format(new Date(item.updated_at))}
                   </small>
+                  <select
+                    className={`project-status status-${item.status || "development"}`}
+                    value={item.status || "development"}
+                    onChange={(event) => onStatusChange(item, event.target.value)}
+                    aria-label={`Status de ${item.name}`}
+                  >
+                    {Object.entries(PROJECT_STATUS).map(([value, label]) => (
+                      <option value={value} key={value}>{label}</option>
+                    ))}
+                  </select>
                   <div className="project-actions">
                     <button onClick={() => onOpen(item)}>Editor</button>
                     <button className="play" onClick={() => onPlay(item)}>
@@ -836,6 +852,7 @@ function App() {
     [mode, setMode] = useState("library"),
     [activeProjectId, setActiveProjectId] = useState(null),
     [projectName, setProjectName] = useState("Projeto Aincrad"),
+    [projectStatus, setProjectStatus] = useState("development"),
     [savedProjects, setSavedProjects] = useState([]),
     [libraryLoading, setLibraryLoading] = useState(true),
     [selected, setSelected] = useState("tree"),
@@ -950,7 +967,7 @@ function App() {
     setLibraryLoading(true);
     const { data, error } = await supabase
       .from("game_projects")
-      .select("id,name,data,created_at,updated_at")
+      .select("id,name,status,data,created_at,updated_at")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
     setSavedProjects(error ? [] : data || []);
@@ -974,7 +991,7 @@ function App() {
       const updatedAt = new Date().toISOString();
       const { error } = await supabase
         .from("game_projects")
-        .update({ name: projectName, data: project, updated_at: updatedAt })
+        .update({ name: projectName, status: projectStatus, data: project, updated_at: updatedAt })
         .eq("id", activeProjectId)
         .eq("user_id", user.id);
       setProjectCloudState(
@@ -984,13 +1001,13 @@ function App() {
         setSavedProjects((items) =>
           items.map((item) =>
             item.id === activeProjectId
-              ? { ...item, name: projectName, data: project, updated_at: updatedAt }
+              ? { ...item, name: projectName, status: projectStatus, data: project, updated_at: updatedAt }
               : item,
           ),
         );
     }, 1800);
     return () => window.clearTimeout(timeout);
-  }, [activeProjectId, mode, project, projectCloudReady, projectName, user?.id]);
+  }, [activeProjectId, mode, project, projectCloudReady, projectName, projectStatus, user?.id]);
   const commit = useCallback((fn) => {
     setProject((old) => {
       history.current.push(clone(old));
@@ -1748,14 +1765,14 @@ function App() {
       const updatedAt = new Date().toISOString();
       const { error } = await supabase
         .from("game_projects")
-        .update({ name: projectName, data: project, updated_at: updatedAt })
+        .update({ name: projectName, status: projectStatus, data: project, updated_at: updatedAt })
         .eq("id", activeProjectId)
         .eq("user_id", user.id);
       if (error) throw error;
       setSavedProjects((items) =>
         items.map((item) =>
           item.id === activeProjectId
-            ? { ...item, name: projectName, data: project, updated_at: updatedAt }
+            ? { ...item, name: projectName, status: projectStatus, data: project, updated_at: updatedAt }
             : item,
         ),
       );
@@ -2277,6 +2294,7 @@ function App() {
     setProject(restored);
     setActiveProjectId(item.id);
     setProjectName(item.name);
+    setProjectStatus(item.status || "development");
     setProjectCloudReady(true);
     setProjectCloudState("Projeto sincronizado");
     history.current = [];
@@ -2292,8 +2310,8 @@ function App() {
     const data = upgradeProject(initialProject());
     const { data: created, error } = await supabase
       .from("game_projects")
-      .insert({ user_id: user.id, name, data })
-      .select("id,name,data,created_at,updated_at")
+      .insert({ user_id: user.id, name, status: "draft", data })
+      .select("id,name,status,data,created_at,updated_at")
       .single();
     if (error) {
       setLibraryLoading(false);
@@ -2303,6 +2321,22 @@ function App() {
     setSavedProjects((items) => [created, ...items]);
     setLibraryLoading(false);
     openSavedProject(created, "editor");
+  };
+  const changeProjectStatus = async (item, status) => {
+    const updatedAt = new Date().toISOString();
+    setSavedProjects((items) =>
+      items.map((candidate) =>
+        candidate.id === item.id
+          ? { ...candidate, status, updated_at: updatedAt }
+          : candidate,
+      ),
+    );
+    const { error } = await supabase
+      .from("game_projects")
+      .update({ status, updated_at: updatedAt })
+      .eq("id", item.id)
+      .eq("user_id", user.id);
+    if (error) loadProjectLibrary();
   };
   const returnToLibrary = async () => {
     if (document.fullscreenElement) await document.exitFullscreen?.().catch(() => {});
@@ -2333,6 +2367,7 @@ function App() {
         onNew={createNewGame}
         onOpen={(item) => openSavedProject(item, "editor")}
         onPlay={(item) => openSavedProject(item, "intro")}
+        onStatusChange={changeProjectStatus}
       />
     );
   if (mode === "intro")

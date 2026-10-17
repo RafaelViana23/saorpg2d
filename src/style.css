@@ -437,9 +437,9 @@ select:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.project-info > small { color: #687783; font-size: 9px; }
+.project-info > small { display: block; color: #687783; font-size: 9px; }
 .project-status {
-  display: inline-block;
+  display: block;
   width: max-content;
   margin-top: 11px;
   padding: 5px 9px;

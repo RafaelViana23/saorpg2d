@@ -648,53 +648,72 @@ function AnimationPreview({ draft, assetById }) {
     </div>
   );
 }
-function AuthControl({ user, ready }) {
-  const [open, setOpen] = useState(false);
+function LoginScreen() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const sendMagicLink = async (event) => {
+  const signIn = async (event) => {
     event.preventDefault();
-    if (!supabase || !email.trim()) return;
+    if (!supabase || !email.trim() || !password) return;
     setSending(true);
     setMessage("");
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
-      options: { emailRedirectTo: location.origin },
+      password,
     });
-    setMessage(error ? error.message : "Link enviado. Confira seu e-mail.");
+    setMessage(error ? "E-mail ou senha inválidos." : "Entrando...");
     setSending(false);
   };
 
-  if (!ready) return <span className="auth-status">Conta...</span>;
-  if (user)
-    return (
-      <div className="auth-account">
-        <span title={user.email}>{user.email}</span>
-        <button onClick={() => supabase?.auth.signOut()}>Sair</button>
-      </div>
-    );
   return (
-    <div className="auth-login">
-      <button onClick={() => setOpen((value) => !value)}>Entrar</button>
-      {open && (
-        <form className="auth-popover" onSubmit={sendMagicLink}>
-          <strong>Salvar na nuvem</strong>
-          <small>Receba um link de acesso, sem senha.</small>
+    <div className="login-screen">
+      <div className="login-atmosphere" />
+      <form className="login-card" onSubmit={signIn}>
+        <span className="login-mark">✦</span>
+        <small>AINCRAD STUDIO</small>
+        <h1>PIXEL FORGE</h1>
+        <p>Entre para acessar seu mundo e continuar criando.</p>
+        <label>
+          E-mail
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            autoComplete="username"
             placeholder="seu@email.com"
+            autoFocus
             required
           />
-          <button className="primary" disabled={sending}>
-            {sending ? "Enviando..." : "Enviar link"}
-          </button>
-          {message && <small className="auth-message">{message}</small>}
-        </form>
-      )}
+        </label>
+        <label>
+          Senha
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            placeholder="Sua senha"
+            required
+          />
+        </label>
+        <button className="login-submit" disabled={sending}>
+          {sending ? "CONECTANDO..." : "ENTRAR"}
+        </button>
+        {message && <div className="login-message">{message}</div>}
+        <small className="login-cloud">☁ Projeto e progresso sincronizados</small>
+      </form>
+    </div>
+  );
+}
+
+function AuthControl({ user }) {
+  if (!user) return null;
+  return (
+    <div className="auth-account">
+      <span title={user.email}>{user.email}</span>
+      <button onClick={() => supabase?.auth.signOut()}>Sair</button>
     </div>
   );
 }
@@ -2131,6 +2150,9 @@ function App() {
     setMode("editor");
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
   };
+  if (!authReady)
+    return <div className="loading-project">Conectando ao Pixel Forge...</div>;
+  if (!user) return <LoginScreen />;
   if (!storageReady)
     return <div className="loading-project">Carregando projeto...</div>;
   if (mode === "intro")
@@ -2166,7 +2188,7 @@ function App() {
           <span className="autosave-status">
             {user ? projectCloudState : saveState}
           </span>
-          <AuthControl user={user} ready={authReady} />
+          <AuthControl user={user} />
           <button className="launch-game" onClick={launchFullScreenGame}>
             <Play size={15} /> Jogar
           </button>

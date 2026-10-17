@@ -1,0 +1,452 @@
+[
+  {
+    "id": "sao_pine",
+    "name": "SAO · Pinheiro",
+    "w": 3,
+    "h": 4,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 3,
+      "h": 4
+    },
+    "src": "/sprites/sao-assets/sao_pine.png?v=4"
+  },
+  {
+    "id": "sao_tree",
+    "name": "SAO · Árvore",
+    "w": 3,
+    "h": 4,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 3,
+      "h": 4
+    },
+    "src": "/sprites/sao-assets/sao_tree.png?v=4"
+  },
+  {
+    "id": "sao_fence_post",
+    "name": "SAO · Poste de cerca",
+    "w": 1,
+    "h": 3,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 3
+    },
+    "src": "/sprites/sao-assets/sao_fence_post.png?v=4"
+  },
+  {
+    "id": "sao_fence",
+    "name": "SAO · Cerca",
+    "w": 3,
+    "h": 2,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 3,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_fence.png?v=4"
+  },
+  {
+    "id": "sao_bush",
+    "name": "SAO · Arbusto",
+    "w": 2,
+    "h": 2,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_bush.png?v=4"
+  },
+  {
+    "id": "sao_rock",
+    "name": "SAO · Rocha",
+    "w": 2,
+    "h": 2,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_rock.png?v=4"
+  },
+  {
+    "id": "sao_chapel",
+    "name": "SAO · Capela",
+    "w": 4,
+    "h": 5,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 5
+    },
+    "src": "/sprites/sao-assets/sao_chapel.png?v=4"
+  },
+  {
+    "id": "sao_house_blue",
+    "name": "SAO · Casa azul",
+    "w": 5,
+    "h": 5,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 5,
+      "h": 5
+    },
+    "src": "/sprites/sao-assets/sao_house_blue.png?v=4"
+  },
+  {
+    "id": "sao_potion_shop",
+    "name": "SAO · Loja de poções",
+    "w": 5,
+    "h": 5,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 5,
+      "h": 5
+    },
+    "src": "/sprites/sao-assets/sao_potion_shop.png?v=4"
+  },
+  {
+    "id": "sao_castle_gate",
+    "name": "SAO · Portão do castelo",
+    "w": 7,
+    "h": 5,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 7,
+      "h": 5
+    },
+    "src": "/sprites/sao-assets/sao_castle_gate.png?v=4"
+  },
+  {
+    "id": "sao_tavern_tower",
+    "name": "SAO · Taverna e torre",
+    "w": 6,
+    "h": 9,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 6,
+      "h": 9
+    },
+    "src": "/sprites/sao-assets/sao_tavern_tower.png?v=4"
+  },
+  {
+    "id": "sao_weapon_shop",
+    "name": "SAO · Loja de armas",
+    "w": 5,
+    "h": 5,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 5,
+      "h": 5
+    },
+    "src": "/sprites/sao-assets/sao_weapon_shop.png?v=4"
+  },
+  {
+    "id": "sao_market_red",
+    "name": "SAO · Mercado vermelho",
+    "w": 4,
+    "h": 3,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 3
+    },
+    "src": "/sprites/sao-assets/sao_market_red.png?v=4"
+  },
+  {
+    "id": "sao_market_blue",
+    "name": "SAO · Mercado azul",
+    "w": 4,
+    "h": 3,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 3
+    },
+    "src": "/sprites/sao-assets/sao_market_blue.png?v=4"
+  },
+  {
+    "id": "sao_market_green",
+    "name": "SAO · Mercado verde",
+    "w": 4,
+    "h": 3,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 3
+    },
+    "src": "/sprites/sao-assets/sao_market_green.png?v=4"
+  },
+  {
+    "id": "sao_well",
+    "name": "SAO · Poço",
+    "w": 3,
+    "h": 3,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 3,
+      "h": 3
+    },
+    "src": "/sprites/sao-assets/sao_well.png?v=4"
+  },
+  {
+    "id": "sao_stone_bridge",
+    "name": "SAO · Ponte de pedra",
+    "w": 5,
+    "h": 3,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 5,
+      "h": 3
+    },
+    "src": "/sprites/sao-assets/sao_stone_bridge.png?v=4"
+  },
+  {
+    "id": "sao_fountain",
+    "name": "SAO · Fonte",
+    "w": 4,
+    "h": 3,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 3
+    },
+    "src": "/sprites/sao-assets/sao_fountain.png?v=4"
+  },
+  {
+    "id": "sao_notice_board",
+    "name": "SAO · Quadro de avisos",
+    "w": 3,
+    "h": 3,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 3,
+      "h": 3
+    },
+    "src": "/sprites/sao-assets/sao_notice_board.png?v=4"
+  },
+  {
+    "id": "sao_barrel",
+    "name": "SAO · Barril",
+    "w": 1,
+    "h": 2,
+    "layer": "decor",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_barrel.png?v=4"
+  },
+  {
+    "id": "sao_wall_long",
+    "name": "SAO · Muralha longa",
+    "w": 7,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 7,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_long.png?v=4"
+  },
+  {
+    "id": "sao_wall_pillar",
+    "name": "SAO · Pilar de muralha",
+    "w": 1,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_pillar.png?v=4"
+  },
+  {
+    "id": "sao_wall_banner_blue",
+    "name": "SAO · Muralha com bandeira",
+    "w": 2,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_banner_blue.png?v=4"
+  },
+  {
+    "id": "sao_wall_column_small",
+    "name": "SAO · Coluna curta",
+    "w": 1,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_column_small.png?v=4"
+  },
+  {
+    "id": "sao_wall_center",
+    "name": "SAO · Muralha central",
+    "w": 7,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 7,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_center.png?v=4"
+  },
+  {
+    "id": "sao_wall_column_a",
+    "name": "SAO · Coluna A",
+    "w": 1,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_column_a.png?v=4"
+  },
+  {
+    "id": "sao_wall_column_b",
+    "name": "SAO · Coluna B",
+    "w": 1,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_column_b.png?v=4"
+  },
+  {
+    "id": "sao_wall_column_c",
+    "name": "SAO · Coluna C",
+    "w": 2,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_column_c.png?v=4"
+  },
+  {
+    "id": "sao_stairs",
+    "name": "SAO · Escadaria",
+    "w": 2,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_stairs.png?v=4"
+  },
+  {
+    "id": "sao_wall_double",
+    "name": "SAO · Muralha dupla",
+    "w": 2,
+    "h": 2,
+    "layer": "structures",
+    "color": "#777",
+    "hitbox": {
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 2
+    },
+    "src": "/sprites/sao-assets/sao_wall_double.png?v=4"
+  }
+]

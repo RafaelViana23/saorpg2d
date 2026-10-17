@@ -1,0 +1,27 @@
+[
+  {
+    "id": "espadachim-sombrio",
+    "name": "Espadachim Sombrio",
+    "path": "/sprites/personagens/herois/espadachim-sombrio"
+  },
+  {
+    "id": "espadachim-laranja",
+    "name": "Espadachim Laranja",
+    "path": "/sprites/personagens/herois/espadachim-laranja"
+  },
+  {
+    "id": "guerreiro-vermelho",
+    "name": "Guerreiro Vermelho",
+    "path": "/sprites/personagens/herois/guerreiro-vermelho"
+  },
+  {
+    "id": "guerreiro-machado",
+    "name": "Guerreiro Machado",
+    "path": "/sprites/personagens/herois/guerreiro-machado"
+  },
+  {
+    "id": "guerreira-rosa",
+    "name": "Guerreira Rosa",
+    "path": "/sprites/personagens/herois/guerreira-rosa"
+  }
+]

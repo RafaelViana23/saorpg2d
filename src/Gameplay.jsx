@@ -271,7 +271,7 @@ function SaoHpGauge({ value, max, compact = false }) {
   );
 }
 
-export default function Gameplay({ project, setProject, onExit, user }) {
+export default function Gameplay({ project, setProject, onExit, user, projectId }) {
   const [hero, setHero] = useState(() => readSave(project));
   const [gameMapId, setGameMapId] = useState(() => readSave(project).mapId);
   const [enemies, setEnemies] = useState(() =>
@@ -548,9 +548,10 @@ export default function Gameplay({ project, setProject, onExit, user }) {
     setCloudReady(false);
     setCloudState("Carregando save da nuvem...");
     supabase
-      .from("game_saves")
+      .from("project_game_saves")
       .select("data")
       .eq("user_id", user.id)
+      .eq("project_id", projectId)
       .eq("slot", "main")
       .maybeSingle()
       .then(({ data, error }) => {
@@ -596,7 +597,7 @@ export default function Gameplay({ project, setProject, onExit, user }) {
     return () => {
       cancelled = true;
     };
-  }, [project, user?.id]);
+  }, [project, projectId, user?.id]);
   useEffect(() => {
     const data = {
       ...hero,
@@ -607,21 +608,22 @@ export default function Gameplay({ project, setProject, onExit, user }) {
     if (!supabase || !user || !cloudReady) return undefined;
     setCloudState("Sincronizando...");
     const timeout = window.setTimeout(async () => {
-      const { error } = await supabase.from("game_saves").upsert(
+      const { error } = await supabase.from("project_game_saves").upsert(
         {
           user_id: user.id,
+          project_id: projectId,
           slot: "main",
           data,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "user_id,slot" },
+        { onConflict: "user_id,project_id,slot" },
       );
       setCloudState(
         error ? "Nuvem indisponível · save local ativo" : "Sincronizado com a nuvem",
       );
     }, 1500);
     return () => window.clearTimeout(timeout);
-  }, [cloudReady, gameMapId, hero, user?.id]);
+  }, [cloudReady, gameMapId, hero, projectId, user?.id]);
   useEffect(() => {
     const regionTone = { village: 262, fields: 330, forest: 196, ruins: 146 };
     sound(regionTone[gameMapId] || 220, 0.35, "sine");
@@ -1837,9 +1839,10 @@ export default function Gameplay({ project, setProject, onExit, user }) {
     localStorage.removeItem(SAVE_KEY);
     if (supabase && user)
       await supabase
-        .from("game_saves")
+        .from("project_game_saves")
         .delete()
         .eq("user_id", user.id)
+        .eq("project_id", projectId)
         .eq("slot", "main");
     const fresh = { ...DEFAULT_HERO, quest: { ...DEFAULT_HERO.quest } };
     setHero(fresh);

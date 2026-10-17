@@ -736,9 +736,108 @@ function AuthControl({ user }) {
   );
 }
 
+function ProjectThumbnail({ data }) {
+  const preview = useRef(null);
+  useEffect(() => {
+    const map = data?.maps?.[data.current] || Object.values(data?.maps || {})[0];
+    if (!preview.current || !map || !data?.assets) return undefined;
+    let cancelled = false;
+    const images = {};
+    const pending = data.assets
+      .filter((asset) => asset.src)
+      .map(
+        (asset) =>
+          new Promise((resolve) => {
+            const image = new Image();
+            image.onload = image.onerror = resolve;
+            image.src = asset.src;
+            images[asset.id] = image;
+          }),
+      );
+    Promise.all(pending).then(() => {
+      if (cancelled || !preview.current) return;
+      renderMap(preview.current, map, data.assets, {
+        zoom: 360 / Math.max(1, map.w * TILE),
+        grid: false,
+        images,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [data]);
+  return <canvas className="project-thumbnail" ref={preview} />;
+}
+
+function ProjectLibrary({ user, projects, loading, onNew, onOpen, onPlay }) {
+  return (
+    <div className="library-screen">
+      <header className="library-header">
+        <div className="brand">
+          <span className="brand-mark">✦</span>
+          <strong>PIXEL FORGE</strong>
+          <span className="version">MEUS JOGOS</span>
+        </div>
+        <AuthControl user={user} />
+      </header>
+      <main className="library-content">
+        <div className="library-title">
+          <div>
+            <small>BIBLIOTECA</small>
+            <h1>Seus projetos</h1>
+            <p>Continue criando ou entre direto no jogo.</p>
+          </div>
+          <button className="library-new" onClick={onNew}>
+            <Plus size={18} /> Novo jogo
+          </button>
+        </div>
+        {loading ? (
+          <div className="library-empty">Carregando seus jogos...</div>
+        ) : projects.length ? (
+          <div className="project-grid">
+            {projects.map((item) => (
+              <article className="project-card" key={item.id}>
+                <div className="project-cover">
+                  <ProjectThumbnail data={item.data} />
+                  <span>{Object.keys(item.data?.maps || {}).length} mapas</span>
+                </div>
+                <div className="project-info">
+                  <h2>{item.name}</h2>
+                  <small>
+                    Atualizado {new Intl.DateTimeFormat("pt-BR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    }).format(new Date(item.updated_at))}
+                  </small>
+                  <div className="project-actions">
+                    <button onClick={() => onOpen(item)}>Editor</button>
+                    <button className="play" onClick={() => onPlay(item)}>
+                      <Play size={15} /> Jogar
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="library-empty">
+            <strong>Nenhum jogo criado ainda</strong>
+            <span>Crie seu primeiro mundo no Pixel Forge.</span>
+            <button onClick={onNew}>Criar novo jogo</button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
 function App() {
   const [project, setProject] = useState(() => upgradeProject(initialProject())),
-    [mode, setMode] = useState("editor"),
+    [mode, setMode] = useState("library"),
+    [activeProjectId, setActiveProjectId] = useState(null),
+    [projectName, setProjectName] = useState("Projeto Aincrad"),
+    [savedProjects, setSavedProjects] = useState([]),
+    [libraryLoading, setLibraryLoading] = useState(true),
     [selected, setSelected] = useState("tree"),
     [selectedRotation, setSelectedRotation] = useState(0),
     [multiSelected, setMultiSelected] = useState([]),
@@ -846,67 +945,52 @@ function App() {
       cancelled = true;
     };
   }, [project, storageReady]);
-  useEffect(() => {
-    if (!storageReady || !authReady) return undefined;
-    if (!supabase || !user) {
-      setProjectCloudReady(false);
-      setProjectCloudState("Salvo neste dispositivo");
-      return undefined;
-    }
-    let cancelled = false;
-    setProjectCloudReady(false);
-    setProjectCloudState("Carregando projeto da nuvem...");
-    supabase
-      .from("editor_projects")
-      .select("data")
+  const loadProjectLibrary = useCallback(async () => {
+    if (!supabase || !user) return;
+    setLibraryLoading(true);
+    const { data, error } = await supabase
+      .from("game_projects")
+      .select("id,name,data,created_at,updated_at")
       .eq("user_id", user.id)
-      .maybeSingle()
-      .then(async ({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          setProjectCloudState("Nuvem indisponível · cópia local ativa");
-          return;
-        }
-        if (data?.data?.maps && data.data.assets && data.data.folders) {
-          setProject(upgradeProject(clone(data.data)));
-          setStatus("Projeto restaurado da nuvem");
-        } else {
-          const { error: uploadError } = await supabase
-            .from("editor_projects")
-            .upsert({
-              user_id: user.id,
-              data: project,
-              updated_at: new Date().toISOString(),
-            });
-          if (uploadError) {
-            setProjectCloudState("Nuvem indisponível · cópia local ativa");
-            return;
-          }
-        }
-        if (!cancelled) {
-          setProjectCloudReady(true);
-          setProjectCloudState("Projeto sincronizado");
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [authReady, storageReady, user?.id]);
+      .order("updated_at", { ascending: false });
+    setSavedProjects(error ? [] : data || []);
+    setLibraryLoading(false);
+  }, [user?.id]);
   useEffect(() => {
-    if (!supabase || !user || !projectCloudReady) return undefined;
+    if (!authReady || !user) return;
+    loadProjectLibrary();
+  }, [authReady, loadProjectLibrary, user?.id]);
+  useEffect(() => {
+    if (
+      !supabase ||
+      !user ||
+      !activeProjectId ||
+      !projectCloudReady ||
+      mode === "library"
+    )
+      return undefined;
     setProjectCloudState("Sincronizando projeto...");
     const timeout = window.setTimeout(async () => {
-      const { error } = await supabase.from("editor_projects").upsert({
-        user_id: user.id,
-        data: project,
-        updated_at: new Date().toISOString(),
-      });
+      const updatedAt = new Date().toISOString();
+      const { error } = await supabase
+        .from("game_projects")
+        .update({ name: projectName, data: project, updated_at: updatedAt })
+        .eq("id", activeProjectId)
+        .eq("user_id", user.id);
       setProjectCloudState(
         error ? "Nuvem indisponível · cópia local ativa" : "Projeto sincronizado",
       );
+      if (!error)
+        setSavedProjects((items) =>
+          items.map((item) =>
+            item.id === activeProjectId
+              ? { ...item, name: projectName, data: project, updated_at: updatedAt }
+              : item,
+          ),
+        );
     }, 1800);
     return () => window.clearTimeout(timeout);
-  }, [project, projectCloudReady, user?.id]);
+  }, [activeProjectId, mode, project, projectCloudReady, projectName, user?.id]);
   const commit = useCallback((fn) => {
     setProject((old) => {
       history.current.push(clone(old));
@@ -1659,13 +1743,22 @@ function App() {
     setProjectCloudState("Salvando agora...");
     try {
       await persistProject(project);
-      if (!supabase || !user) throw new Error("Usuário não autenticado");
-      const { error } = await supabase.from("editor_projects").upsert({
-        user_id: user.id,
-        data: project,
-        updated_at: new Date().toISOString(),
-      });
+      if (!supabase || !user || !activeProjectId)
+        throw new Error("Projeto não selecionado");
+      const updatedAt = new Date().toISOString();
+      const { error } = await supabase
+        .from("game_projects")
+        .update({ name: projectName, data: project, updated_at: updatedAt })
+        .eq("id", activeProjectId)
+        .eq("user_id", user.id);
       if (error) throw error;
+      setSavedProjects((items) =>
+        items.map((item) =>
+          item.id === activeProjectId
+            ? { ...item, name: projectName, data: project, updated_at: updatedAt }
+            : item,
+        ),
+      );
       setProjectCloudReady(true);
       setProjectCloudState("Salvo agora no Supabase");
       setStatus("Projeto salvo no Supabase");
@@ -2179,6 +2272,45 @@ function App() {
       setPlayer(start);
     }
   };
+  const openSavedProject = (item, targetMode = "editor") => {
+    const restored = upgradeProject(clone(item.data));
+    setProject(restored);
+    setActiveProjectId(item.id);
+    setProjectName(item.name);
+    setProjectCloudReady(true);
+    setProjectCloudState("Projeto sincronizado");
+    history.current = [];
+    future.current = [];
+    setActive(null);
+    setStatus("Projeto aberto da biblioteca");
+    setMode(targetMode);
+  };
+  const createNewGame = async () => {
+    const name = prompt("Nome do novo jogo:", "Novo jogo")?.trim();
+    if (!name || !supabase || !user) return;
+    setLibraryLoading(true);
+    const data = upgradeProject(initialProject());
+    const { data: created, error } = await supabase
+      .from("game_projects")
+      .insert({ user_id: user.id, name, data })
+      .select("id,name,data,created_at,updated_at")
+      .single();
+    if (error) {
+      setLibraryLoading(false);
+      alert("Não foi possível criar o jogo.");
+      return;
+    }
+    setSavedProjects((items) => [created, ...items]);
+    setLibraryLoading(false);
+    openSavedProject(created, "editor");
+  };
+  const returnToLibrary = async () => {
+    if (document.fullscreenElement) await document.exitFullscreen?.().catch(() => {});
+    setMode("library");
+    setActiveProjectId(null);
+    setProjectCloudReady(false);
+    loadProjectLibrary();
+  };
   const launchFullScreenGame = () => {
     document.documentElement.requestFullscreen?.().catch(() => {});
     setMode("intro");
@@ -2192,6 +2324,17 @@ function App() {
   if (!user) return <LoginScreen />;
   if (!storageReady)
     return <div className="loading-project">Carregando projeto...</div>;
+  if (mode === "library")
+    return (
+      <ProjectLibrary
+        user={user}
+        projects={savedProjects}
+        loading={libraryLoading}
+        onNew={createNewGame}
+        onOpen={(item) => openSavedProject(item, "editor")}
+        onPlay={(item) => openSavedProject(item, "intro")}
+      />
+    );
   if (mode === "intro")
     return (
       <div className="sao-intro-screen">
@@ -2211,6 +2354,7 @@ function App() {
         setProject={setProject}
         onExit={exitFullScreenGame}
         user={user}
+        projectId={activeProjectId}
       />
     );
   return (
@@ -2219,23 +2363,24 @@ function App() {
         <div className="brand">
           <span className="brand-mark">✦</span>
           <strong>PIXEL FORGE</strong>
-          <span className="version">AINCRAD STUDIO · v0.9</span>
+          <input
+            className="project-name-input"
+            value={projectName}
+            onChange={(event) => setProjectName(event.target.value)}
+            aria-label="Nome do jogo"
+          />
         </div>
         <div className="header-actions">
           <span className="autosave-status">
             {user ? projectCloudState : saveState}
           </span>
+          <button onClick={returnToLibrary}>
+            <FolderOpen size={15} /> Meus jogos
+          </button>
           <button className="launch-game" onClick={launchFullScreenGame}>
             <Play size={15} /> Jogar
           </button>
-          <button
-            onClick={() => {
-              if (confirm("Criar projeto novo? Salve o atual antes.")) {
-                setProject(initialProject());
-                setActive(null);
-              }
-            }}
-          >
+          <button onClick={createNewGame}>
             <FilePlus size={15} /> Novo
           </button>
           <button onClick={saveProjectNow}>

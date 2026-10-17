@@ -1630,13 +1630,32 @@ function App() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   };
-  const save = () =>
+  const exportProject = () =>
     download(
       new Blob([JSON.stringify(project, null, 2)], {
         type: "application/json",
       }),
       "pixel-forge-project.json",
     );
+  const saveProjectNow = async () => {
+    setProjectCloudState("Salvando agora...");
+    try {
+      await persistProject(project);
+      if (!supabase || !user) throw new Error("Usuário não autenticado");
+      const { error } = await supabase.from("editor_projects").upsert({
+        user_id: user.id,
+        data: project,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      setProjectCloudReady(true);
+      setProjectCloudState("Salvo agora no Supabase");
+      setStatus("Projeto salvo no Supabase");
+    } catch {
+      setProjectCloudState("Falha na nuvem · cópia local salva");
+      setStatus("Cópia local salva; falha no Supabase");
+    }
+  };
   const importProject = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -2202,11 +2221,14 @@ function App() {
           >
             <FilePlus size={15} /> Novo
           </button>
-          <button onClick={() => fileRef.current?.click()}>
-            <FolderOpen size={15} /> Abrir
+          <button onClick={saveProjectNow}>
+            <Save size={15} /> Salvar agora
           </button>
-          <button onClick={save}>
-            <Save size={15} /> Salvar
+          <button onClick={exportProject}>
+            <Download size={15} /> Exportar
+          </button>
+          <button onClick={() => fileRef.current?.click()}>
+            <FolderOpen size={15} /> Abrir arquivo
           </button>
         </div>
       </header>

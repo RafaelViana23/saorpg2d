@@ -2241,13 +2241,13 @@ function App() {
           <button onClick={saveProjectNow}>
             <Save size={15} /> Salvar agora
           </button>
-          <AuthControl user={user} />
           <button onClick={exportProject}>
             <Download size={15} /> Exportar
           </button>
           <button onClick={() => fileRef.current?.click()}>
             <FolderOpen size={15} /> Abrir arquivo
           </button>
+          <AuthControl user={user} />
         </div>
       </header>
       <div className="workspace">

@@ -26,6 +26,13 @@ Abrir o endereço mostrado pelo Vite (geralmente `http://localhost:5173`). Para 
 - Undo/redo, importação PNG como Data URL, exportação JSON e PNG.
 - Places de tamanhos independentes (até 100×26), portais configuráveis, colisões, NPCs e diálogos.
 - Modo Play com setas/WASD, espaço para diálogos, dia/tarde/noite e ciclo automático.
+- Controle pelo celular via QR Code e canais de presença/broadcast do Supabase Realtime.
+
+## Supabase
+
+O Supabase é obrigatório para autenticação, biblioteca de projetos, saves e controle remoto. Copie `.env.example` para `.env`, informe a URL e a chave publicável do projeto e aplique, em ordem, as migrações de `supabase/migrations`.
+
+O controle remoto usa canais públicos do Supabase Realtime. Eles precisam estar habilitados no projeto para que o navegador do jogo e o celular entrem na mesma sessão.
 
 ## Notas para o Codex
 

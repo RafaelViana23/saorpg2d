@@ -332,6 +332,24 @@ select:focus-visible {
   font-size: 10px;
   text-align: center;
 }
+.login-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 16px;
+}
+.login-links button {
+  padding: 0;
+  border: 0;
+  color: #91b3c4;
+  background: transparent;
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.login-links button:hover { color: #d8e8ef; }
 .login-cloud {
   display: block;
   margin-top: 20px;

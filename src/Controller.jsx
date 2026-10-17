@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "./lib/supabase";
+import { randomId } from "./id";
 
 const BUTTONS = [
   ["triangle", "menu"],
@@ -23,7 +25,7 @@ export default function Controller() {
   const [connected, setConnected] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [portrait, setPortrait] = useState(() => matchMedia("(orientation: portrait)").matches);
-  const socket = useRef(null);
+  const channel = useRef(null);
   const held = useRef(new Map());
   const joystick = useRef(null);
   const joystickPointer = useRef(null);
@@ -31,31 +33,31 @@ export default function Controller() {
   const [stickPosition, setStickPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    let stopped = false;
-    let timer;
-    const connect = () => {
-      if (stopped || !token) return;
-      setRetrying(true);
-      const protocol = location.protocol === "https:" ? "wss" : "ws";
-      const ws = new WebSocket(`${protocol}://${location.host}/controller-socket?role=controller&token=${encodeURIComponent(token)}`);
-      socket.current = ws;
-      ws.onopen = () => setRetrying(false);
-      ws.onmessage = ({ data }) => {
-        try {
-          const message = JSON.parse(data);
-          if (message.type === "status") setConnected(message.connected);
-        } catch {}
-      };
-      ws.onclose = () => {
-        setConnected(false);
-        if (!stopped) timer = setTimeout(connect, 1200);
-      };
+    if (!supabase || !token) return undefined;
+    setRetrying(true);
+    const updateConnection = () => {
+      const presence = channel.current?.presenceState() || {};
+      setConnected(
+        Object.values(presence).flat().some((peer) => peer.role === "host"),
+      );
     };
-    connect();
+    const room = supabase.channel(`controller:${token}`, {
+      config: { presence: { key: `controller-${randomId()}` } },
+    });
+    channel.current = room;
+    room
+      .on("presence", { event: "sync" }, updateConnection)
+      .on("presence", { event: "join" }, updateConnection)
+      .on("presence", { event: "leave" }, updateConnection)
+      .subscribe(async (status) => {
+        setRetrying(status !== "SUBSCRIBED");
+        if (status === "SUBSCRIBED") await room.track({ role: "controller" });
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setConnected(false);
+      });
     return () => {
-      stopped = true;
-      clearTimeout(timer);
-      socket.current?.close();
+      room.untrack();
+      supabase.removeChannel(room);
+      channel.current = null;
     };
   }, [token]);
 
@@ -76,8 +78,11 @@ export default function Controller() {
   }, []);
 
   const send = useCallback((type, control) => {
-    if (socket.current?.readyState === WebSocket.OPEN)
-      socket.current.send(JSON.stringify({ type, control }));
+    channel.current?.send({
+      type: "broadcast",
+      event: "control",
+      payload: { type, control },
+    });
   }, []);
 
   const press = (control) => (event) => {

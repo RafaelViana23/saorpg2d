@@ -57,6 +57,10 @@ import Gameplay from "./Gameplay";
 import Controller from "./Controller";
 import { randomId } from "./id";
 import { supabase } from "./lib/supabase";
+import {
+  captureProjectContent,
+  restoreProjectContent,
+} from "./project-migrations";
 const clone = (x) => structuredClone(x),
   uid = randomId;
 const DB_NAME = "pixel-forge-autosave",
@@ -104,6 +108,7 @@ async function loadSavedProject() {
   return backup ? JSON.parse(backup) : null;
 }
 function upgradeProject(project) {
+  const preservedContent = captureProjectContent(project);
   if ((project.version || 0) < 7) {
     const asset = initialAssets.find((a) => a.id === "stone_walk_grass_clean");
     if (asset && !project.assets.some((a) => a.id === asset.id)) {
@@ -513,7 +518,7 @@ function upgradeProject(project) {
     }
     project.version = 42;
   }
-  return project;
+  return restoreProjectContent(project, preservedContent);
 }
 async function persistProject(project) {
   try {
@@ -649,32 +654,65 @@ function AnimationPreview({ draft, assetById }) {
   );
 }
 function LoginScreen() {
+  const [authMode, setAuthMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const signIn = async (event) => {
+  const submitAuth = async (event) => {
     event.preventDefault();
-    if (!supabase || !email.trim() || !password) return;
+    if (!supabase || !email.trim() || (authMode !== "recovery" && !password)) return;
     setSending(true);
     setMessage("");
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    setMessage(error ? "E-mail ou senha inválidos." : "Entrando...");
+    let error;
+    if (authMode === "signup") {
+      ({ error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { emailRedirectTo: location.origin },
+      }));
+    } else if (authMode === "recovery") {
+      ({ error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: location.origin,
+      }));
+    } else {
+      ({ error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      }));
+    }
+    setMessage(
+      error
+        ? error.message || "Não foi possível concluir a solicitação."
+        : authMode === "signup"
+          ? "Conta criada. Confira seu e-mail para confirmar o acesso."
+          : authMode === "recovery"
+            ? "Enviamos as instruções de recuperação para seu e-mail."
+            : "Entrando...",
+    );
     setSending(false);
+  };
+
+  const changeMode = (nextMode) => {
+    setAuthMode(nextMode);
+    setMessage("");
   };
 
   return (
     <div className="login-screen">
       <div className="login-atmosphere" />
-      <form className="login-card" onSubmit={signIn}>
+      <form className="login-card" onSubmit={submitAuth}>
         <span className="login-mark">✦</span>
         <small>AINCRAD STUDIO</small>
         <h1>PIXEL FORGE</h1>
-        <p>Entre para acessar seu mundo e continuar criando.</p>
+        <p>
+          {authMode === "signup"
+            ? "Crie sua conta para salvar seus mundos na nuvem."
+            : authMode === "recovery"
+              ? "Informe seu e-mail para recuperar o acesso."
+              : "Entre para acessar seu mundo e continuar criando."}
+        </p>
         <label>
           E-mail
           <input
@@ -687,21 +725,35 @@ function LoginScreen() {
             required
           />
         </label>
-        <label>
-          Senha
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-            placeholder="Sua senha"
-            required
-          />
-        </label>
+        {authMode !== "recovery" && (
+          <label>
+            Senha
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+              placeholder="Sua senha"
+              minLength={6}
+              required
+            />
+          </label>
+        )}
         <button className="login-submit" disabled={sending}>
-          {sending ? "CONECTANDO..." : "ENTRAR"}
+          {sending
+            ? "AGUARDE..."
+            : authMode === "signup"
+              ? "CRIAR CONTA"
+              : authMode === "recovery"
+                ? "ENVIAR RECUPERAÇÃO"
+                : "ENTRAR"}
         </button>
         {message && <div className="login-message">{message}</div>}
+        <div className="login-links">
+          {authMode !== "signin" && <button type="button" onClick={() => changeMode("signin")}>Entrar</button>}
+          {authMode !== "signup" && <button type="button" onClick={() => changeMode("signup")}>Criar conta</button>}
+          {authMode !== "recovery" && <button type="button" onClick={() => changeMode("recovery")}>Esqueci a senha</button>}
+        </div>
         <small className="login-cloud">☁ Projeto e progresso sincronizados</small>
       </form>
     </div>
@@ -2337,6 +2389,13 @@ function App() {
   };
   if (!authReady)
     return <div className="loading-project">Conectando ao Pixel Forge...</div>;
+  if (!supabase)
+    return (
+      <div className="loading-project">
+        Supabase não configurado. Defina VITE_SUPABASE_URL e
+        VITE_SUPABASE_PUBLISHABLE_KEY para iniciar o Pixel Forge.
+      </div>
+    );
   if (!user) return <LoginScreen />;
   if (!storageReady)
     return <div className="loading-project">Carregando projeto...</div>;

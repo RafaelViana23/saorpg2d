@@ -914,7 +914,7 @@ export function initialProject() {
 }
 export const coord = (x, y) => String.fromCharCode(65 + y) + (x + 1);
 export function parseCoord(s) {
-  const m = /^([A-Z])(\d+)$/i.exec(s || "");
+  const m = /^([A-Z])([1-9]\d*)$/i.exec(s || "");
   return m ? { x: +m[2] - 1, y: m[1].toUpperCase().charCodeAt(0) - 65 } : null;
 }
 export function drawSprite(ctx, asset, x, y, unit = 32, images = {}) {

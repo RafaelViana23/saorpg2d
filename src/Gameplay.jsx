@@ -466,47 +466,48 @@ export default function Gameplay({ project, setProject, onExit, user, projectId 
   }, [defending]);
 
   useEffect(() => {
-    const protocol = location.protocol === "https:" ? "wss" : "ws";
-    let socket;
-    let retry;
-    let stopped = false;
+    if (!supabase) return undefined;
     const releaseRemoteControls = () => {
       ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "l"].forEach((key) =>
         window.dispatchEvent(new KeyboardEvent("keyup", { key })),
       );
     };
-    const connect = () => {
-      socket = new WebSocket(`${protocol}://${location.host}/controller-socket?role=host&token=${encodeURIComponent(controllerToken.current)}`);
-      socket.onmessage = ({ data }) => {
-        try {
-          const message = JSON.parse(data);
-          if (message.type === "status") {
-            setControllerConnected(message.connected);
-            if (message.connected) setControllerOpen(false);
-            if (!message.connected) releaseRemoteControls();
-            return;
-          }
-          const keyByControl = {
-            up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight",
-            attack: "j", interact: "e", menu: "p", defend: "l",
-          };
-          const key = keyByControl[message.control];
-          if (!key) return;
-          const isDown = message.type === "buttonDown" || message.type === "directionDown";
-          window.dispatchEvent(new KeyboardEvent(isDown ? "keydown" : "keyup", { key }));
-        } catch {}
-      };
-      socket.onclose = () => {
-        setControllerConnected(false);
-        releaseRemoteControls();
-        if (!stopped) retry = setTimeout(connect, 1200);
-      };
+    const updateConnection = () => {
+      const presence = channel.presenceState();
+      const connected = Object.values(presence)
+        .flat()
+        .some((peer) => peer.role === "controller");
+      setControllerConnected(connected);
+      if (connected) setControllerOpen(false);
+      else releaseRemoteControls();
     };
-    connect();
+    const channel = supabase.channel(`controller:${controllerToken.current}`, {
+      config: { presence: { key: `host-${randomId()}` } },
+    });
+    channel
+      .on("presence", { event: "sync" }, updateConnection)
+      .on("presence", { event: "join" }, updateConnection)
+      .on("presence", { event: "leave" }, updateConnection)
+      .on("broadcast", { event: "control" }, ({ payload: message }) => {
+        const keyByControl = {
+          up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight",
+          attack: "j", interact: "e", menu: "p", defend: "l",
+        };
+        const key = keyByControl[message?.control];
+        if (!key) return;
+        const isDown = message.type === "buttonDown" || message.type === "directionDown";
+        window.dispatchEvent(new KeyboardEvent(isDown ? "keydown" : "keyup", { key }));
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") await channel.track({ role: "host" });
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setControllerConnected(false);
+          releaseRemoteControls();
+        }
+      });
     return () => {
-      stopped = true;
-      clearTimeout(retry);
-      socket?.close();
+      channel.untrack();
+      supabase.removeChannel(channel);
       releaseRemoteControls();
     };
   }, []);
